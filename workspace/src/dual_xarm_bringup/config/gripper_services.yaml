@@ -1,0 +1,8 @@
+ufactory_driver:
+  ros__parameters:
+    services:
+      set_gripper_enable: true
+      set_gripper_position: true
+      set_gripper_speed: true
+      get_gripper_position: true
+      clean_gripper_error: true

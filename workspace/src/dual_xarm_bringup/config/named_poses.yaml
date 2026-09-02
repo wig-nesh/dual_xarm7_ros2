@@ -1,0 +1,10 @@
+home_lifted:
+  description: >
+    xarm7 factory home is all joints zero and puts the tcp at z = -0.0515 m
+    relative to link_base, below the table surface. home_lifted is the factory
+    home pose raised by 0.2 m (tcp z = 0.1485 m), solved with IK seeded at
+    the factory home. Never command the factory home.
+  planning_frame: link_base
+  tcp_position_m: [0.2060, 0.0, 0.1485]
+  joint_names: [joint1, joint2, joint3, joint4, joint5, joint6, joint7]
+  positions_rad: [-0.000145, -0.994736, 0.000134, 0.201643, 0.000130, 1.196379, -0.000107]

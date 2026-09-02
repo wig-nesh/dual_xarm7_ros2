@@ -1,0 +1,10 @@
+.direnv/
+ufactory_studio/
+*.AppImage
+workspace/build/
+workspace/install/
+workspace/log/
+__pycache__/
+*.pyc
+workspace/driver.log
+workspace/moveit.log
