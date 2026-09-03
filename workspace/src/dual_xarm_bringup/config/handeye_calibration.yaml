@@ -1,0 +1,52 @@
+calibration_name: xarm1_cam1
+
+camera:
+  image_topic: /camera/camera/color/image_raw
+  camera_info_topic: /camera/camera/color/camera_info
+  optical_frame: camera_color_optical_frame
+
+board:
+  squares_x: 5
+  squares_y: 5
+  square_length_m: 0.0246
+  marker_length_m: 0.0175
+  dictionary: DICT_4X4_50
+  marker_frame: charuco_board
+
+handeye:
+  calibration_type: eye_on_base
+  robot_base_frame: link_base
+  robot_effector_frame: link_tcp
+
+table_marker:
+  marker_type: aruco
+  dictionary: DICT_ARUCO_ORIGINAL
+  marker_id: 102
+  marker_length_m: 0.1775
+  marker_frame: table_marker
+  hover_offset_m: 0.05
+  hover_corner: top_left
+  hover_orientation: down
+# table_marker:
+#   marker_type: grid
+#   markers_x: 4
+#   markers_y: 3
+#   marker_length_m: 0.056
+#   marker_separation_m: 0.015
+#   grid_id_order: column_bottom_up
+#   dictionary: DICT_5X5_100
+#   marker_frame: table_marker
+#   hover_offset_m: 0.05
+#   hover_corner: center
+#   hover_orientation: down
+
+
+sampling:
+  tilt_steps_deg: [20.0, 40.0, 60.0]
+  azimuth_count: 8
+  roll_steps_deg: [-60.0, 0.0, 60.0]
+  target_samples: 12
+  max_joint_displacement_rad: 2.5
+  tf_max_age_sec: 2.0
+  settle_time_sec: 0.75
+  marker_wait_timeout_sec: 8.0

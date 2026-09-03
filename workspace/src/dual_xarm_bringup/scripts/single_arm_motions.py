@@ -22,10 +22,22 @@ from xarm_msgs.srv import GetFloat32List, GripperMove, SetInt16
 
 GROUP_NAME = 'xarm7'
 PLANNING_FRAME = 'link_base'
-END_EFFECTOR_LINK = 'link_tcp'
+DEFAULT_EFFECTOR_LINK = 'link_tcp'
 JOINT_NAMES = [f'joint{index}' for index in range(1, 8)]
 VELOCITY_SCALING = 0.2
 ACCELERATION_SCALING = 0.2
+
+
+def load_effector_link() -> str:
+    config_path = Path(get_package_share_directory('dual_xarm_bringup')) / \
+        'config' / 'handeye_calibration.yaml'
+    if not config_path.exists():
+        return DEFAULT_EFFECTOR_LINK
+    settings = yaml.safe_load(config_path.read_text())
+    return settings.get('handeye', {}).get('robot_effector_frame', DEFAULT_EFFECTOR_LINK)
+
+
+END_EFFECTOR_LINK = load_effector_link()
 
 
 class SingleArmMotions(Node):
@@ -129,7 +141,7 @@ class SingleArmMotions(Node):
             constraints.joint_constraints.append(joint_constraint)
         return constraints
 
-    def plan_confirm_and_execute_request(self, request: MotionPlanRequest, description: str) -> None:
+    def plan_confirm_and_execute_request(self, request: MotionPlanRequest, description: str) -> bool:
         while True:
             trajectory = self.plan(request, description)
             answer = input(f'{description}: Enter to execute, r to replan, s to skip: ')
@@ -138,13 +150,13 @@ class SingleArmMotions(Node):
                 continue
             if normalized_answer == 's':
                 self.get_logger().info(f'{description}: skipped')
-                return
+                return False
             self.execute(trajectory, description)
-            return
+            return True
 
-    def move_to_joint_angles(self, angles_rad: list[float], description: str) -> None:
+    def move_to_joint_angles(self, angles_rad: list[float], description: str) -> bool:
         request = self.build_request(self.joint_goal_constraints(angles_rad))
-        self.plan_confirm_and_execute_request(request, description)
+        return self.plan_confirm_and_execute_request(request, description)
 
     def read_current_eef_pose(self) -> Pose:
         angles = self.read_current_angles()

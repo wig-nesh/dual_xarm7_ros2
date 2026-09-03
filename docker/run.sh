@@ -5,9 +5,9 @@ project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 image_name="dual_xarm7_humble"
 container_name="dual_xarm_dev"
 
-if [ "${1:-}" = "--rebuild" ] || ! docker image inspect "${image_name}" >/dev/null 2>&1; then
+if [ "${1:-}" = "--rebuild" ] || ! sudo docker image inspect "${image_name}" >/dev/null 2>&1; then
   echo "building image ${image_name}"
-  docker build -t "${image_name}" "${project_root}/docker"
+  sudo docker build -t "${image_name}" "${project_root}/docker"
 fi
 
 display="${DISPLAY:-}"
@@ -55,4 +55,4 @@ else
   echo "note: xhost not found, GUIs may fail to open the display" >&2
 fi
 
-docker run "${docker_args[@]}" "${image_name}" bash
+sudo docker run "${docker_args[@]}" "${image_name}" bash

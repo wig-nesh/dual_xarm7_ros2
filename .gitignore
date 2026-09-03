@@ -8,3 +8,4 @@ __pycache__/
 *.pyc
 workspace/driver.log
 workspace/moveit.log
+workspace/realsense.log

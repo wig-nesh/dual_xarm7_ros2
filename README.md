@@ -6,8 +6,10 @@ live in plan.md.
 
 ## setup
 
-Requirements: Nix with flakes, direnv, Docker (rootless works), an X11 or
-XWayland session.
+Requirements: Nix with flakes, direnv, Docker via the rootful daemon
+(`sudo ./docker/run.sh`), an X11 or XWayland session. Rootless docker
+cannot pass USB devices (cameras), and USB devices plugged in after the
+container starts are invisible — plug cameras first, then start.
 
 1. `direnv allow`
 2. `./docker/run.sh` builds the image on first run and opens a shell in the
@@ -134,4 +136,96 @@ ros2 run dual_xarm_bringup single_arm_motions.py
 It starts from the `home_lifted` named pose, then shifts the TCP +3 cm / -3 cm
 along base x, z, and y, then opens/closes the gripper. Keep MoveIt/RViz up to
 watch the planned paths.
+
+## camera + hand-eye calibration
+
+Eye-on-base calibration of one D455 against arm one, via easy_handeye2. All
+parameters live in `workspace/src/dual_xarm_bringup/config/handeye_calibration.yaml`.
+
+### board
+
+Print a 5x5 charuco board:
+
+```
+ros2 run dual_xarm_bringup make_charuco_board.py --output /colcon_ws/charuco_board.png
+```
+
+Print at the stated dpi, then **measure the actual square and marker with
+calipers** and set `board.square_length_m` / `board.marker_length_m` to the
+measured values. A board size error becomes a scale error in the calibration
+directly: 1 percent wrong board = 1 cm wrong at 1 m.
+
+### calibrate
+
+Rigidly mount the board on the gripper, face outward. Start the usual stack
+(driver, MoveIt realmove, enable services, camera), then:
+
+```
+ros2 launch dual_xarm_bringup camera_calibrate.launch.py
+```
+
+This starts the charuco detector and the easy_handeye2 server (no GUI; on
+Humble the rqt calibrator is broken, everything goes through services).
+
+Jog the arm so the board is centered, face-on, about 0.5 m from the camera —
+that pose is the nominal all sample orientations rotate around. Then:
+
+```
+ros2 run dual_xarm_bringup calibrate_camera.py
+```
+
+It walks through orientation candidates (Enter executes, `r` replans, `s`
+skips a pose), takes 12 samples, solves, and copies the result to
+`/colcon_ws/calibrations/<name>.yaml` (which persists across containers).
+
+Sanity checks:
+
+- The printed camera translation should match a tape measure from the arm base.
+- Cross-check solvers; agreement within ~1 mm / under a degree means clean data:
+
+```
+ros2 service call /easy_handeye2/calibration/set_algorithm easy_handeye2_msgs/srv/SetAlgorithm "{new_algorithm: 'OpenCV/Park'}"
+ros2 service call /easy_handeye2/calibration/compute_calibration easy_handeye2_msgs/srv/ComputeCalibration
+```
+
+If the board was measured after calibrating and differs from the configured
+size, correct the saved yaml instead of redoing the sampling: multiply the
+translation by `measured_length / configured_length`.
+
+### publish and use
+
+```
+ros2 launch dual_xarm_bringup publish_calibration.launch.py
+ros2 run tf2_ros tf2_echo link_base camera_link
+```
+
+This publishes a static `link_base -> camera_link` transform (composed with
+the driver's camera tree, so the camera frame stays single-parented). Anything
+the camera detects is now expressible in arm coordinates.
+
+### table marker and hover demo
+
+The `table_marker:` config section drives a second detector instance:
+
+```
+ros2 launch dual_xarm_bringup table_marker.launch.py
+ros2 run dual_xarm_bringup marker_hover_demo.py
+```
+
+`marker_type: aruco` tracks a single marker (dictionary, id, size); the demo
+hovers the tool `hover_offset_m` above it, `hover_orientation: down`. For
+marker boards use `marker_type: grid` with the physical layout
+(`markers_x/y`, lengths, `grid_id_order`). Unknown dictionary or layout?
+Probe a live frame:
+
+```
+python3 /colcon_ws/src/dual_xarm_bringup/scripts/probe_dictionary.py
+python3 /colcon_ws/src/dual_xarm_bringup/scripts/probe_grid_layout.py
+```
+
+Expected accuracy with a calibrated setup: 1-2 cm on a single marker,
+sub-centimeter on a multi-marker board.
+
+Note: `handeye.robot_effector_frame` must match the running robot model —
+`link_tcp` with `add_gripper:=true`, `link_eef` on a bare flange.
 

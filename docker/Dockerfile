@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-rosdep \
     ros-humble-controller-manager \
+    ros-humble-cv-bridge \
     ros-humble-desktop \
     ros-humble-diff-drive-controller \
     ros-humble-find-object-2d \
